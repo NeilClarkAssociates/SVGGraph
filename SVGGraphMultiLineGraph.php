@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -34,7 +34,7 @@ class MultiLineGraph extends LineGraph {
     $body = $this->Grid() . $this->UnderShapes();
 
     $plots = '';
-    $y_axis_pos = $this->height - $this->pad_bottom - 
+    $y_axis_pos = $this->height - $this->pad_bottom -
       $this->y_axes[$this->main_y_axis]->Zero();
     $y_bottom = min($y_axis_pos, $this->height - $this->pad_bottom);
 
@@ -47,8 +47,8 @@ class MultiLineGraph extends LineGraph {
       $axis = $this->DatasetYAxis($i);
       foreach($this->multi_graph[$i] as $item) {
         $x = $this->GridPosition($item, $bnum);
-        if(!is_null($x) && !is_null($item->value)) {
-          $y = $this->GridY($item->value, $axis);
+        if(!is_null($x)) {
+          $y = !is_null($item->value) ? $this->GridY($item->value, $axis) : NULL;
           $points[] = array($x, $y, $item, $i, $bnum);
         }
         ++$bnum;
