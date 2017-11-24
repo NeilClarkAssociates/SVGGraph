@@ -95,13 +95,21 @@ class LineGraph extends PointGraph {
     $attr['stroke-width'] = $stroke_width <= 0 ? 1 : $stroke_width;
     $path = $fillpath = '';
     $cmd = 'M';
+    $consecutive_null_count = 0;
     foreach($points as $point) {
       list($x, $y, $item, $dataset, $index) = $point;
 
       if (is_null($y)) {
-        if ($this->settings['break_on_null']) $cmd = 'M';
+        $consecutive_null_count++;
+        if (
+          $this->settings['break_on_null'] &&
+          $consecutive_null_count >= $this->settings['break_minimum']
+        ) {
+          $cmd = 'M';
+        }
         continue;
       }
+      $consecutive_null_count = 0;
 
       if(empty($fillpath))
         $fillpath = "M$x {$y_bottom}L";
