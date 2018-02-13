@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2009-2017 Graham Breach
+ * Copyright (C) 2009-2018 Graham Breach
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
  * For more information, please contact <graham@goat1000.com>
  */
 
-define('SVGGRAPH_VERSION', 'SVGGraph 2.25');
+define('SVGGRAPH_VERSION', 'SVGGraph 2.26');
 
 require_once 'SVGGraphColours.php';
 
@@ -785,24 +785,42 @@ abstract class Graph {
 
     // put entities back in
     $text = preg_replace('/&amp;(amp|#x[a-f0-9]+|#\d+);/', '&$1;', $text);
+    $group = 'text';
+    $no_tspan = $this->no_tspan;
 
     if(strpos($text, "\n") === FALSE) {
       $content = ($text == '' ? ' ' : $text);
     } else {
       $lines = explode("\n", $text);
       $content = '';
-      $tspan = array('x' => $attribs['x'], 'dy' => 0);
+      $line_attr = array('x' => $attribs['x']);
+      if($no_tspan) {
+        $line_attr['y'] = $attribs['y'];
+        $line_element = 'text';
+        $group = 'g';
+      } else {
+        $line_attr['dy'] = 0;
+        $line_element = 'tspan';
+      }
+      $count = 1;
       foreach($lines as $line) {
         // blank tspan elements collapse to nothing, so insert a space
         if($line == '')
           $line = ' ';
 
         // trim because spaces in text are significant
-        $content .= trim($this->Element('tspan', $tspan, NULL, $line));
-        $tspan['dy'] = $line_spacing;
+        $content .= trim($this->Element($line_element, $line_attr, NULL, $line));
+        if($no_tspan) {
+          $line_attr['y'] = $attribs['y'] + $line_spacing * $count;
+        } else {
+          $line_attr['dy'] = $line_spacing;
+        }
+        ++$count;
       }
+      if($no_tspan)
+        unset($attribs['x'], $attribs['y']);
     }
-    return $this->Element('text', $attribs, $styles, $content); 
+    return $this->Element($group, $attribs, $styles, $content);
   }
 
   /**
@@ -1348,7 +1366,8 @@ abstract class Graph {
     $pos = $this->ArrayOption($this->data_label_position, $dataset);
     if(empty($pos))
       $pos = 'above';
-    return $pos;
+    $end = array($x + $w * 0.5, $y + $h * 0.5);
+    return array($pos, $end);
   }
 
 
@@ -1387,32 +1406,19 @@ abstract class Graph {
    */
   public function DataLabelStyle($dataset, $index, &$item)
   {
-    $style = array(
-      'type' => $this->ArrayOption($this->data_label_type, $dataset),
-      'font' => $this->ArrayOption($this->data_label_font, $dataset),
-      'font_size' => $this->ArrayOption($this->data_label_font_size, $dataset),
-      'font_adjust' => $this->ArrayOption($this->data_label_font_adjust, $dataset),
-      'font_weight' => $this->ArrayOption($this->data_label_font_weight, $dataset),
-      'colour' => $this->ArrayOption($this->data_label_colour, $dataset),
-      'altcolour' => $this->ArrayOption($this->data_label_colour_outside, $dataset),
-      'back_colour' => $this->ArrayOption($this->data_label_back_colour, $dataset),
-      'back_altcolour' => $this->ArrayOption($this->data_label_back_colour_outside, $dataset),
-      'space' => $this->ArrayOption($this->data_label_space, $dataset),
-      'angle' => $this->ArrayOption($this->data_label_angle, $dataset),
-      'pad_x' => $this->GetFirst(
+    $map = $this->data_labels->GetStyleMap();
+    $style = array();
+    foreach($map as $key => $option) {
+      $style[$key] = $this->ArrayOption($this->{$option}, $dataset);
+    }
+
+    // padding x/y options override single value
+    $style['pad_x'] = $this->GetFirst(
         $this->ArrayOption($this->data_label_padding_x, $dataset),
-        $this->ArrayOption($this->data_label_padding, $dataset)),
-      'pad_y' => $this->GetFirst(
+        $this->ArrayOption($this->data_label_padding, $dataset));
+    $style['pad_y'] = $this->GetFirst(
         $this->ArrayOption($this->data_label_padding_y, $dataset),
-        $this->ArrayOption($this->data_label_padding, $dataset)),
-      'round' => $this->ArrayOption($this->data_label_round, $dataset),
-      'stroke' => $this->ArrayOption($this->data_label_outline_colour, $dataset),
-      'stroke_width' => $this->ArrayOption($this->data_label_outline_thickness, $dataset),
-      'fill' => $this->ArrayOption($this->data_label_fill, $dataset),
-      'tail_width' => $this->ArrayOption($this->data_label_tail_width, $dataset),
-      'tail_length' => $this->ArrayOption($this->data_label_tail_length, $dataset),
-      'shadow_opacity' => $this->ArrayOption($this->data_label_shadow_opacity, $dataset),
-    );
+        $this->ArrayOption($this->data_label_padding, $dataset));
     return $style;
   }
 

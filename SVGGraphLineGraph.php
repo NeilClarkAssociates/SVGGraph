@@ -11,7 +11,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -37,21 +37,21 @@ class LineGraph extends PointGraph {
 
     $bnum = 0;
     $cmd = 'M';
-    $y_axis_pos = $this->height - $this->pad_bottom - 
+    $y_axis_pos = $this->height - $this->pad_bottom -
       $this->y_axes[$this->main_y_axis]->Zero();
     $y_bottom = min($y_axis_pos, $this->height - $this->pad_bottom);
 
     $points = array();
     foreach($this->values[0] as $item) {
       $x = $this->GridPosition($item, $bnum);
-      if(!is_null($item->value) && !is_null($x)) {
-        $y = $this->GridY($item->value);
+      if(!is_null($x)) {
+        $y = !is_null($item->value) ? $this->GridY($item->value) : NULL;
         $points[] = array($x, $y, $item, 0, $bnum);
       }
       ++$bnum;
     }
 
-    $graph_line = $this->DrawLine(0, $points, $y_bottom, true); 
+    $graph_line = $this->DrawLine(0, $points, $y_bottom, true);
 
     $group = array();
     $this->ClipGrid($group);
@@ -95,8 +95,21 @@ class LineGraph extends PointGraph {
     $attr['stroke-width'] = $stroke_width <= 0 ? 1 : $stroke_width;
     $path = $fillpath = '';
     $cmd = 'M';
+    $consecutive_null_count = 0;
     foreach($points as $point) {
       list($x, $y, $item, $dataset, $index) = $point;
+
+      if (is_null($y)) {
+        $consecutive_null_count++;
+        if (
+          $this->settings['break_on_null'] &&
+          $consecutive_null_count >= $this->settings['break_minimum']
+        ) {
+          $cmd = 'M';
+        }
+        continue;
+      }
+      $consecutive_null_count = 0;
 
       if(empty($fillpath))
         $fillpath = "M$x {$y_bottom}L";
@@ -138,6 +151,8 @@ class LineGraph extends PointGraph {
     // add markers (and therefore legend entries too)
     foreach($points as $point) {
       list($x, $y, $item, $dataset, $index) = $point;
+
+      if (is_null($y)) continue;
 
       $marker_id = $this->MarkerLabel($dataset, $index, $item, $x, $y);
       $extra = empty($marker_id) ? NULL : array('id' => $marker_id);
